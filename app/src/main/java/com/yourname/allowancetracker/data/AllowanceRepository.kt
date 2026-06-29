@@ -84,11 +84,18 @@ class AllowanceRepository(context: Context) {
     // RECURRING ALLOWANCE
     // ============================================
 
-    suspend fun addRecurringAllowance(childId: Int, amount: Double, dayOfWeek: Int) {
+    // ============================================
+// RECURRING ALLOWANCE MANAGEMENT
+// ============================================
+
+
+    // ✅ USE THIS NEW METHOD INSTEAD:
+    suspend fun addRecurringAllowance(childId: Int, amount: Double, frequency: String, day: Int) {
         val allowance = RecurringAllowance(
             childId = childId,
             amount = amount,
-            dayOfWeek = dayOfWeek,
+            frequency = frequency,
+            day = day,
             isActive = true
         )
         recurringDao.insertAllowance(allowance)
@@ -100,11 +107,10 @@ class AllowanceRepository(context: Context) {
 
     suspend fun applyScheduledAllowances() {
         val activeAllowances = recurringDao.getActiveAllowances().first()
-        val today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
-        val adjustedToday = if (today == Calendar.SUNDAY) 7 else today - 1
 
         activeAllowances.forEach { allowance ->
-            if (allowance.dayOfWeek == adjustedToday) {
+            if (allowance.shouldRunToday()) {
+                // Check if already applied today
                 val existingToday = transactionDao.getTransactionsForChild(allowance.childId)
                     .first()
                     .filter {
@@ -112,13 +118,13 @@ class AllowanceRepository(context: Context) {
                         cal.timeInMillis = it.timestamp
                         cal.get(Calendar.DAY_OF_YEAR) == Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
                     }
-                    .any { it.description == "Weekly Allowance" }
+                    .any { it.description.contains("Recurring Allowance") }
 
                 if (!existingToday) {
                     addTransaction(
                         childId = allowance.childId,
                         amount = allowance.amount,
-                        description = "Weekly Allowance"
+                        description = "${allowance.frequency} Allowance"
                     )
                 }
             }

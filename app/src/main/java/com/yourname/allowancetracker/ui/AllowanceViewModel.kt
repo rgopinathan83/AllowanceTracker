@@ -109,16 +109,17 @@ class AllowanceViewModel(application: Application) : AndroidViewModel(applicatio
     // RECURRING ALLOWANCE MANAGEMENT
     // ============================================
 
-    fun addRecurringAllowance(childId: Int, amount: Double, dayOfWeek: Int) {
+    // ✅ FIXED: Match the signature expected by the dialog
+    fun addRecurringAllowance(childId: Int, amount: Double, frequency: String, day: Int) {
         if (amount > 0) {
             viewModelScope.launch {
-                repository.addRecurringAllowance(childId, amount, dayOfWeek)
+                repository.addRecurringAllowance(childId, amount, frequency, day)
             }
         }
     }
 
     // ============================================
-    // GOALS MANAGEMENT - ⭐ NEW METHODS ⭐
+    // GOALS MANAGEMENT
     // ============================================
 
     fun getGoalsForChild(childId: Int) = repository.getGoalsForChild(childId)
@@ -139,6 +140,12 @@ class AllowanceViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun updateGoal(goal: SavingsGoal) {
+        viewModelScope.launch {
+            repository.updateGoal(goal)
+        }
+    }
+
     fun allocateToGoal(childId: Int, goalId: Int, amount: Double, note: String) {
         if (amount > 0) {
             viewModelScope.launch {
@@ -156,11 +163,6 @@ class AllowanceViewModel(application: Application) : AndroidViewModel(applicatio
                 // Refresh data
                 _selectedChildId.value?.let { selectChild(it) }
             }
-        }
-    }
-    fun updateGoal(goal: SavingsGoal) {
-        viewModelScope.launch {
-            repository.updateGoal(goal)
         }
     }
 }

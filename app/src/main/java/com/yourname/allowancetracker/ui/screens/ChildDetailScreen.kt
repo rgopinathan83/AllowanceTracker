@@ -34,6 +34,7 @@ fun ChildDetailScreen(
     val transactions = uiState.transactions
     val scope = rememberCoroutineScope()
 
+    // Dialog states
     var showAddTransactionDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
@@ -71,7 +72,9 @@ fun ChildDetailScreen(
                     if (isSearching) {
                         // Search bar
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -85,11 +88,12 @@ fun ChildDetailScreen(
                                 onValueChange = { searchQuery = it },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(40.dp),
+                                    .fillMaxHeight(),
                                 placeholder = {
                                     Text(
                                         "Search transactions...",
-                                        color = Color.White.copy(alpha = 0.6f)
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 16.sp
                                     )
                                 },
                                 colors = TextFieldDefaults.colors(
@@ -100,12 +104,12 @@ fun ChildDetailScreen(
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
                                     cursorColor = Color.White,
-                                    focusedPlaceholderColor = Color.White.copy(alpha = 0.6f),
-                                    unfocusedPlaceholderColor = Color.White.copy(alpha = 0.6f)
+                                    focusedPlaceholderColor = Color.White.copy(alpha = 0.7f),
+                                    unfocusedPlaceholderColor = Color.White.copy(alpha = 0.7f)
                                 ),
                                 singleLine = true,
                                 textStyle = androidx.compose.ui.text.TextStyle(
-                                    fontSize = 16.sp,
+                                    fontSize = 18.sp,
                                     color = Color.White
                                 )
                             )
@@ -325,6 +329,10 @@ fun ChildDetailScreen(
         }
     }
 
+    // ============================================
+    // DIALOGS
+    // ============================================
+
     // Add Transaction Dialog
     if (showAddTransactionDialog) {
         AddTransactionDialog(
@@ -368,9 +376,9 @@ fun ChildDetailScreen(
         RecurringAllowanceDialog(
             childId = child.id,
             onDismiss = { showRecurringDialog = false },
-            onSave = { amount, day ->
+            onSave = { amount, frequency, day ->
                 scope.launch {
-                    viewModel.addRecurringAllowance(child.id, amount, day)
+                    viewModel.addRecurringAllowance(child.id, amount, frequency, day)
                     showRecurringDialog = false
                 }
             }
@@ -723,21 +731,21 @@ fun EditTransactionDialog(
 }
 
 // ============================================
-// RECURRING ALLOWANCE DIALOG
+// RECURRING ALLOWANCE DIALOG - COMPLETELY FIXED
 // ============================================
 @Composable
 fun RecurringAllowanceDialog(
     childId: Int,
     onDismiss: () -> Unit,
-    onSave: (Double, Int) -> Unit
+    onSave: (Double, String, Int) -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
-    var selectedDay by remember { mutableStateOf(1) } // Monday = 1
+    var frequency by remember { mutableStateOf("Weekly") }
+    var selectedDay by remember { mutableStateOf(1) }
 
-    val days = listOf(
-        "Monday", "Tuesday", "Wednesday", "Thursday",
-        "Friday", "Saturday", "Sunday"
-    )
+    val frequencies = listOf("Weekly", "Monthly")
+    val weekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val monthDays = (1..28).map { it.toString() }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -748,7 +756,9 @@ fun RecurringAllowanceDialog(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -766,7 +776,7 @@ fun RecurringAllowanceDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    "Automatically add allowance every week",
+                    "Automatically add allowance on a schedule",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -776,7 +786,7 @@ fun RecurringAllowanceDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Weekly Amount") },
+                    label = { Text("Amount") },
                     placeholder = { Text("10.00") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -789,7 +799,7 @@ fun RecurringAllowanceDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    "Day of Week",
+                    "Frequency",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF333333)
@@ -797,31 +807,162 @@ fun RecurringAllowanceDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Day picker with chips
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Frequency chips - SIMPLIFIED
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    days.chunked(4).forEach { row ->
+                    frequencies.forEach { freq ->
+                        val isSelected = frequency == freq
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                frequency = freq
+                                selectedDay = 1
+                            },
+                            label = {
+                                Text(
+                                    freq,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF6C63FF).copy(alpha = 0.2f),
+                                selectedLabelColor = Color(0xFF6C63FF)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    if (frequency == "Weekly") "Day of Week" else "Day of Month",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF333333)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Day chips - SIMPLIFIED without border
+                if (frequency == "Weekly") {
+                    // Weekly: Show day names
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        weekDays.forEachIndexed { index, day ->
+                            val isSelected = selectedDay == index + 1
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedDay = index + 1 },
+                                label = {
+                                    Text(
+                                        day,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color(0xFF6C63FF) else Color(0xFF555555)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF6C63FF).copy(alpha = 0.2f),
+                                    selectedLabelColor = Color(0xFF6C63FF),
+                                    containerColor = Color(0xFFF5F5F5)
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    // Monthly: Show day numbers
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        monthDays.chunked(7).forEach { row ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                row.forEach { day ->
+                                    val dayNum = day.toInt()
+                                    val isSelected = selectedDay == dayNum
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { selectedDay = dayNum },
+                                        label = {
+                                            Text(
+                                                day,
+                                                fontSize = 14.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) Color(0xFF6C63FF) else Color(0xFF555555)
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(40.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF6C63FF).copy(alpha = 0.2f),
+                                            selectedLabelColor = Color(0xFF6C63FF),
+                                            containerColor = Color(0xFFF5F5F5)
+                                        )
+                                    )
+                                }
+                                // Fill empty spaces
+                                repeat(7 - row.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Preview of the schedule
+                if (amount.isNotBlank() && amount.toDoubleOrNull() != null && amount.toDoubleOrNull()!! > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF5F3FF)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            row.forEach { day ->
-                                val dayIndex = days.indexOf(day) + 1
-                                FilterChip(
-                                    selected = selectedDay == dayIndex,
-                                    onClick = { selectedDay = dayIndex },
-                                    label = { Text(day.take(3), fontSize = 12.sp) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFF6C63FF).copy(alpha = 0.2f),
-                                        selectedLabelColor = Color(0xFF6C63FF)
-                                    )
+                            Text("📅", fontSize = 20.sp)
+                            Column {
+                                Text(
+                                    "Schedule Preview",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF6C63FF)
                                 )
-                            }
-                            // Fill empty spaces
-                            repeat(4 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
+                                Text(
+                                    "$${String.format("%.2f", amount.toDoubleOrNull()!!)} every ${
+                                        if (frequency == "Weekly") {
+                                            weekDays[selectedDay - 1]
+                                        } else {
+                                            "${selectedDay}${when (selectedDay) {
+                                                1 -> "st"
+                                                2 -> "nd"
+                                                3 -> "rd"
+                                                else -> "th"
+                                            }}"
+                                        }
+                                    }",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF333333)
+                                )
                             }
                         }
                     }
@@ -834,7 +975,7 @@ fun RecurringAllowanceDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text("Cancel", fontSize = 14.sp)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -843,7 +984,7 @@ fun RecurringAllowanceDialog(
                         onClick = {
                             val amountValue = amount.toDoubleOrNull()
                             if (amountValue != null && amountValue > 0) {
-                                onSave(amountValue, selectedDay)
+                                onSave(amountValue, frequency, selectedDay)
                             }
                         },
                         enabled = amount.toDoubleOrNull() != null && amount.toDoubleOrNull()!! > 0,
@@ -852,7 +993,7 @@ fun RecurringAllowanceDialog(
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Save Recurring")
+                        Text("Save Recurring", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

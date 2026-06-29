@@ -14,7 +14,7 @@ import androidx.room.TypeConverters
         SavingsGoal::class,
         GoalTransaction::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
