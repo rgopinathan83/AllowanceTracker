@@ -56,49 +56,6 @@ Allowance Tracker is a clean, minimalist Android app designed to help parents tr
 
 ---
 
-## 📸 Screenshots
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="screenshots/home.png" alt="Home Screen" width="200"/>
-        <br/>
-        <b>Home Screen</b>
-      </td>
-      <td align="center">
-        <img src="screenshots/child_detail.png" alt="Child Detail" width="200"/>
-        <br/>
-        <b>Child Detail</b>
-      </td>
-      <td align="center">
-        <img src="screenshots/goals.png" alt="Goals" width="200"/>
-        <br/>
-        <b>Savings Goals</b>
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <img src="screenshots/add_transaction.png" alt="Add Transaction" width="200"/>
-        <br/>
-        <b>Add Transaction</b>
-      </td>
-      <td align="center">
-        <img src="screenshots/allocate_funds.png" alt="Allocate Funds" width="200"/>
-        <br/>
-        <b>Allocate Funds</b>
-      </td>
-      <td align="center">
-        <img src="screenshots/search.png" alt="Search" width="200"/>
-        <br/>
-        <b>Search</b>
-      </td>
-    </tr>
-  </table>
-</div>
-
----
-
 ## 🚀 Installation
 
 ### 📥 Download APK
