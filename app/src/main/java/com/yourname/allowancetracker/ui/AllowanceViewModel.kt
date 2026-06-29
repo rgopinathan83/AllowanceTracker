@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.yourname.allowancetracker.data.AllowanceRepository
 import com.yourname.allowancetracker.data.SavingsGoal
 import com.yourname.allowancetracker.data.Transaction
-import com.yourname.allowancetracker.data.RecurringAllowance  // ✅ ADD THIS IMPORT
+import com.yourname.allowancetracker.data.RecurringAllowance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
