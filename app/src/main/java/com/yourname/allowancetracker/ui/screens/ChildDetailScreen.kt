@@ -38,6 +38,7 @@ fun ChildDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
+    var showRecurringDialog by remember { mutableStateOf(false) }
 
     // Search state
     var searchQuery by remember { mutableStateOf("") }
@@ -88,19 +89,25 @@ fun ChildDetailScreen(
                                 placeholder = {
                                     Text(
                                         "Search transactions...",
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = Color.White.copy(alpha = 0.6f)
                                     )
                                 },
                                 colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                                    unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                                    focusedContainerColor = Color.White.copy(alpha = 0.15f),
+                                    unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
                                     focusedIndicatorColor = Color.Transparent,
                                     unfocusedIndicatorColor = Color.Transparent,
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
-                                    cursorColor = Color.White
+                                    cursorColor = Color.White,
+                                    focusedPlaceholderColor = Color.White.copy(alpha = 0.6f),
+                                    unfocusedPlaceholderColor = Color.White.copy(alpha = 0.6f)
                                 ),
-                                singleLine = true
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 16.sp,
+                                    color = Color.White
+                                )
                             )
                             IconButton(
                                 onClick = {
@@ -131,6 +138,17 @@ fun ChildDetailScreen(
                 },
                 actions = {
                     if (!isSearching) {
+                        // Recurring Allowance Button
+                        IconButton(
+                            onClick = { showRecurringDialog = true }
+                        ) {
+                            Icon(
+                                Icons.Default.Repeat,
+                                "Recurring Allowance",
+                                tint = Color.White
+                            )
+                        }
+
                         // Goals Button
                         IconButton(
                             onClick = { onNavigateToGoals(child.id, child.name) }
@@ -154,7 +172,7 @@ fun ChildDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = Color(0xFF6C63FF),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -163,7 +181,7 @@ fun ChildDetailScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddTransactionDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = Color(0xFF6C63FF),
                 contentColor = Color.White
             ) {
                 Text("+", fontSize = 24.sp)
@@ -289,7 +307,6 @@ fun ChildDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredTransactions) { transaction ->
-                        // ⭐ CALLING TRANSACTIONITEM HERE ⭐
                         TransactionItem(
                             transaction = transaction,
                             onEditClick = {
@@ -346,6 +363,20 @@ fun ChildDetailScreen(
         )
     }
 
+    // Recurring Allowance Dialog
+    if (showRecurringDialog) {
+        RecurringAllowanceDialog(
+            childId = child.id,
+            onDismiss = { showRecurringDialog = false },
+            onSave = { amount, day ->
+                scope.launch {
+                    viewModel.addRecurringAllowance(child.id, amount, day)
+                    showRecurringDialog = false
+                }
+            }
+        )
+    }
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -375,7 +406,7 @@ fun ChildDetailScreen(
 }
 
 // ============================================
-// ⭐ TRANSACTION ITEM COMPOSABLE ⭐
+// TRANSACTION ITEM
 // ============================================
 @Composable
 fun TransactionItem(
@@ -480,7 +511,8 @@ fun AddTransactionDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -554,7 +586,10 @@ fun AddTransactionDialog(
                                 onAdd(finalAmount, description)
                             }
                         },
-                        enabled = amount.toDoubleOrNull() != null && description.isNotBlank()
+                        enabled = amount.toDoubleOrNull() != null && description.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF6C63FF)
+                        )
                     ) {
                         Text("Add")
                     }
@@ -583,7 +618,8 @@ fun EditTransactionDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -672,10 +708,151 @@ fun EditTransactionDialog(
                                     onUpdate(finalAmount, description)
                                 }
                             },
-                            enabled = amount.toDoubleOrNull() != null && description.isNotBlank()
+                            enabled = amount.toDoubleOrNull() != null && description.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF6C63FF)
+                            )
                         ) {
                             Text("Update")
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================
+// RECURRING ALLOWANCE DIALOG
+// ============================================
+@Composable
+fun RecurringAllowanceDialog(
+    childId: Int,
+    onDismiss: () -> Unit,
+    onSave: (Double, Int) -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var selectedDay by remember { mutableStateOf(1) } // Monday = 1
+
+    val days = listOf(
+        "Monday", "Tuesday", "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday"
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🔄", fontSize = 28.sp)
+                    Text(
+                        "Recurring Allowance",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF333333)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    "Automatically add allowance every week",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Weekly Amount") },
+                    placeholder = { Text("10.00") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    "Day of Week",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF333333)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Day picker with chips
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    days.chunked(4).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { day ->
+                                val dayIndex = days.indexOf(day) + 1
+                                FilterChip(
+                                    selected = selectedDay == dayIndex,
+                                    onClick = { selectedDay = dayIndex },
+                                    label = { Text(day.take(3), fontSize = 12.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF6C63FF).copy(alpha = 0.2f),
+                                        selectedLabelColor = Color(0xFF6C63FF)
+                                    )
+                                )
+                            }
+                            // Fill empty spaces
+                            repeat(4 - row.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            val amountValue = amount.toDoubleOrNull()
+                            if (amountValue != null && amountValue > 0) {
+                                onSave(amountValue, selectedDay)
+                            }
+                        },
+                        enabled = amount.toDoubleOrNull() != null && amount.toDoubleOrNull()!! > 0,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF6C63FF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Save Recurring")
                     }
                 }
             }
