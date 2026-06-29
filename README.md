@@ -10,7 +10,7 @@
 
 **A simple, bloat-free allowance tracking app for parents and kids**
 
-[Features](#-features) • [Screenshots](#-screenshots) • [Installation](#-installation) • [Tech Stack](#-tech-stack) • [Contributing](#-contributing)
+[Features](#-features) • [Installation](#-installation) • [Tech Stack](#-tech-stack) • [Contributing](#-contributing)
 
 </div>
 
