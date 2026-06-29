@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.yourname.allowancetracker.data.AllowanceRepository
 import com.yourname.allowancetracker.data.SavingsGoal
 import com.yourname.allowancetracker.data.Transaction
+import com.yourname.allowancetracker.data.RecurringAllowance  // ✅ ADD THIS IMPORT
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -109,12 +110,31 @@ class AllowanceViewModel(application: Application) : AndroidViewModel(applicatio
     // RECURRING ALLOWANCE MANAGEMENT
     // ============================================
 
-    // ✅ FIXED: Match the signature expected by the dialog
     fun addRecurringAllowance(childId: Int, amount: Double, frequency: String, day: Int) {
         if (amount > 0) {
             viewModelScope.launch {
                 repository.addRecurringAllowance(childId, amount, frequency, day)
             }
+        }
+    }
+
+    fun getRecurringAllowance(childId: Int) = repository.getRecurringAllowance(childId)
+
+    fun toggleRecurringAllowance(allowanceId: Int, isActive: Boolean) {
+        viewModelScope.launch {
+            repository.toggleRecurringAllowance(allowanceId, isActive)
+        }
+    }
+
+    fun updateRecurringAllowance(allowance: RecurringAllowance) {
+        viewModelScope.launch {
+            repository.updateRecurringAllowance(allowance)
+        }
+    }
+
+    fun deleteRecurringAllowance(allowanceId: Int) {
+        viewModelScope.launch {
+            repository.deleteRecurringAllowance(allowanceId)
         }
     }
 

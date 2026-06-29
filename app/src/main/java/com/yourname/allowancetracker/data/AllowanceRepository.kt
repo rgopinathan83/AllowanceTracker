@@ -3,11 +3,6 @@ package com.yourname.allowancetracker.data
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
 import java.util.Calendar
 import kotlin.math.min
 
@@ -81,15 +76,9 @@ class AllowanceRepository(context: Context) {
     }
 
     // ============================================
-    // RECURRING ALLOWANCE
+    // RECURRING ALLOWANCE MANAGEMENT
     // ============================================
 
-    // ============================================
-// RECURRING ALLOWANCE MANAGEMENT
-// ============================================
-
-
-    // ✅ USE THIS NEW METHOD INSTEAD:
     suspend fun addRecurringAllowance(childId: Int, amount: Double, frequency: String, day: Int) {
         val allowance = RecurringAllowance(
             childId = childId,
@@ -105,12 +94,23 @@ class AllowanceRepository(context: Context) {
         return recurringDao.getAllowanceForChild(childId)
     }
 
+    suspend fun toggleRecurringAllowance(allowanceId: Int, isActive: Boolean) {
+        recurringDao.updateAllowanceStatus(allowanceId, isActive)
+    }
+
+    suspend fun updateRecurringAllowance(allowance: RecurringAllowance) {
+        recurringDao.updateAllowance(allowance)
+    }
+
+    suspend fun deleteRecurringAllowance(allowanceId: Int) {
+        recurringDao.deleteAllowance(allowanceId)
+    }
+
     suspend fun applyScheduledAllowances() {
         val activeAllowances = recurringDao.getActiveAllowances().first()
 
         activeAllowances.forEach { allowance ->
             if (allowance.shouldRunToday()) {
-                // Check if already applied today
                 val existingToday = transactionDao.getTransactionsForChild(allowance.childId)
                     .first()
                     .filter {
@@ -118,7 +118,7 @@ class AllowanceRepository(context: Context) {
                         cal.timeInMillis = it.timestamp
                         cal.get(Calendar.DAY_OF_YEAR) == Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
                     }
-                    .any { it.description.contains("Recurring Allowance") }
+                    .any { it.description.contains("Allowance") }
 
                 if (!existingToday) {
                     addTransaction(
@@ -132,7 +132,7 @@ class AllowanceRepository(context: Context) {
     }
 
     // ============================================
-    // GOALS - ⭐ NEW METHODS ⭐
+    // GOALS
     // ============================================
 
     fun getGoalsForChild(childId: Int): Flow<List<SavingsGoal>> {
@@ -157,11 +157,13 @@ class AllowanceRepository(context: Context) {
         savingsGoalDao.deleteGoal(goal)
     }
 
+    suspend fun updateGoal(goal: SavingsGoal) {
+        savingsGoalDao.updateGoal(goal)
+    }
+
     suspend fun allocateToGoal(childId: Int, goalId: Int, amount: Double, note: String) {
-        // 1. Add to goal's saved amount
         savingsGoalDao.addToGoal(goalId, amount)
 
-        // 2. Record the goal transaction
         val goalTransaction = GoalTransaction(
             goalId = goalId,
             childId = childId,
@@ -170,10 +172,8 @@ class AllowanceRepository(context: Context) {
         )
         goalTransactionDao.insertGoalTransaction(goalTransaction)
 
-        // 3. Deduct from child's main balance
         addTransaction(childId, -amount, "Savings: $note")
 
-        // 4. Check if goal is completed
         val goal = savingsGoalDao.getGoalById(goalId)
         goal?.let {
             if (it.savedAmount >= it.targetAmount) {
@@ -190,13 +190,10 @@ class AllowanceRepository(context: Context) {
     suspend fun withdrawFromGoal(childId: Int, goal: SavingsGoal, amount: Double, note: String) {
         val withdrawAmount = minOf(amount, goal.savedAmount)
 
-        // 1. Reduce goal's saved amount
         savingsGoalDao.addToGoal(goal.id, -withdrawAmount)
 
-        // 2. Add back to child's main balance
         addTransaction(childId, withdrawAmount, "Withdraw from goal: $note")
 
-        // 3. Update goal completion status if needed
         if (goal.isCompleted) {
             savingsGoalDao.updateGoal(
                 goal.copy(
@@ -205,8 +202,5 @@ class AllowanceRepository(context: Context) {
                 )
             )
         }
-    }
-    suspend fun updateGoal(goal: SavingsGoal) {
-        savingsGoalDao.updateGoal(goal)
     }
 }

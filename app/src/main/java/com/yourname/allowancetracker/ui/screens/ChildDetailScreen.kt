@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 fun ChildDetailScreen(
     viewModel: AllowanceViewModel,
     onBack: () -> Unit,
-    onNavigateToGoals: (Int, String) -> Unit
+    onNavigateToGoals: (Int, String) -> Unit,
+    onNavigateToRecurring: (Int, String) -> Unit  // NEW
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val child = uiState.selectedChild

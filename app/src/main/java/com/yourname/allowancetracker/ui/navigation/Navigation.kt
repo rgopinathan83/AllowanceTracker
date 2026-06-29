@@ -11,6 +11,7 @@ import com.yourname.allowancetracker.ui.AllowanceViewModel
 import com.yourname.allowancetracker.ui.screens.ChildDetailScreen
 import com.yourname.allowancetracker.ui.screens.GoalsScreen
 import com.yourname.allowancetracker.ui.screens.HomeScreen
+import com.yourname.allowancetracker.ui.screens.RecurringAllowanceManagementScreen
 
 @Composable
 fun AppNavigation(viewModel: AllowanceViewModel) {
@@ -20,22 +21,17 @@ fun AppNavigation(viewModel: AllowanceViewModel) {
         navController = navController,
         startDestination = "home"
     ) {
-        // ============================================
-        // HOME SCREEN ROUTE
-        // ============================================
+        // HOME SCREEN
         composable("home") {
             HomeScreen(
                 viewModel = viewModel,
                 onChildClick = { childId ->
-                    // Navigate to Child Detail screen
                     navController.navigate("child/$childId")
                 }
             )
         }
 
-        // ============================================
-        // CHILD DETAIL SCREEN ROUTE
-        // ============================================
+        // CHILD DETAIL SCREEN
         composable(
             route = "child/{childId}",
             arguments = listOf(
@@ -46,7 +42,6 @@ fun AppNavigation(viewModel: AllowanceViewModel) {
         ) { backStackEntry ->
             val childId = backStackEntry.arguments?.getInt("childId") ?: return@composable
 
-            // Load child data when entering this screen
             LaunchedEffect(childId) {
                 viewModel.selectChild(childId)
             }
@@ -54,19 +49,18 @@ fun AppNavigation(viewModel: AllowanceViewModel) {
             ChildDetailScreen(
                 viewModel = viewModel,
                 onBack = {
-                    // Navigate back to Home
                     navController.popBackStack()
                 },
-                onNavigateToGoals = { childId, childName ->
-                    // Navigate to Goals screen
-                    navController.navigate("goals/$childId/$childName")
+                onNavigateToGoals = { id, name ->
+                    navController.navigate("goals/$id/$name")
+                },
+                onNavigateToRecurring = { id, name ->
+                    navController.navigate("recurring/$id/$name")
                 }
             )
         }
 
-        // ============================================
-        // GOALS SCREEN ROUTE
-        // ============================================
+        // GOALS SCREEN
         composable(
             route = "goals/{childId}/{childName}",
             arguments = listOf(
@@ -86,7 +80,31 @@ fun AppNavigation(viewModel: AllowanceViewModel) {
                 childId = childId,
                 childName = childName,
                 onBack = {
-                    // Navigate back to Child Detail
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // RECURRING ALLOWANCE MANAGEMENT SCREEN
+        composable(
+            route = "recurring/{childId}/{childName}",
+            arguments = listOf(
+                navArgument("childId") {
+                    type = NavType.IntType
+                },
+                navArgument("childName") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val childId = backStackEntry.arguments?.getInt("childId") ?: return@composable
+            val childName = backStackEntry.arguments?.getString("childName") ?: ""
+
+            RecurringAllowanceManagementScreen(
+                viewModel = viewModel,
+                childId = childId,
+                childName = childName,
+                onBack = {
                     navController.popBackStack()
                 }
             )
