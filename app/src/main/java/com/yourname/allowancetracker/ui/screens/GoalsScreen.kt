@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.yourname.allowancetracker.data.SavingsGoal
 import com.yourname.allowancetracker.ui.AllowanceViewModel
+import com.yourname.allowancetracker.utils.formatCurrency
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
@@ -43,6 +44,7 @@ fun GoalsScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currencyCode = uiState.currencyCode
     var goals by remember { mutableStateOf<List<SavingsGoal>>(emptyList()) }
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var showAllocateDialog by remember { mutableStateOf<SavingsGoal?>(null) }
@@ -187,6 +189,7 @@ fun GoalsScreen(
                         ) {
                             EnhancedGoalCard(
                                 goal = goal,
+                                currencyCode = currencyCode,
                                 onAllocate = { showAllocateDialog = goal },
                                 onEdit = { showEditGoalDialog = goal },
                                 onDelete = { showDeleteGoalDialog = goal }
@@ -205,6 +208,7 @@ fun GoalsScreen(
                     items(completedGoalList) { goal ->
                         EnhancedGoalCard(
                             goal = goal,
+                            currencyCode = currencyCode,
                             onAllocate = null,
                             onEdit = { showEditGoalDialog = goal },
                             onDelete = { showDeleteGoalDialog = goal }
@@ -244,6 +248,7 @@ fun GoalsScreen(
         AllocateFundsDialog(
             goal = goal,
             availableBalance = uiState.selectedChild?.balance ?: 0.0,
+            currencyCode = currencyCode,
             onDismiss = { showAllocateDialog = null },
             onAllocate = { amount, note ->
                 scope.launch {
@@ -405,6 +410,7 @@ fun SectionHeader(title: String, count: Int) {
 @Composable
 fun EnhancedGoalCard(
     goal: SavingsGoal,
+    currencyCode: String,
     onAllocate: (() -> Unit)?,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -492,7 +498,7 @@ fun EnhancedGoalCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                "$${String.format("%.2f", goal.savedAmount)} / $${String.format("%.2f", goal.targetAmount)}",
+                                "${formatCurrency(goal.savedAmount, currencyCode)} / ${formatCurrency(goal.targetAmount, currencyCode)}",
                                 fontSize = 13.sp,
                                 color = Color.Gray
                             )
@@ -597,7 +603,7 @@ fun EnhancedGoalCard(
                             color = Color.Gray
                         )
                         Text(
-                            "$${String.format("%.2f", remaining)}",
+                            formatCurrency(remaining, currencyCode),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF333333)
@@ -1005,6 +1011,7 @@ fun AddGoalDialog(
 fun AllocateFundsDialog(
     goal: SavingsGoal,
     availableBalance: Double,
+    currencyCode: String,
     onDismiss: () -> Unit,
     onAllocate: (Double, String) -> Unit
 ) {
@@ -1064,7 +1071,7 @@ fun AllocateFundsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "Progress: $${String.format("%.2f", goal.savedAmount)} / $${String.format("%.2f", goal.targetAmount)}",
+                                "Progress: ${formatCurrency(goal.savedAmount, currencyCode)} / ${formatCurrency(goal.targetAmount, currencyCode)}",
                                 fontSize = 13.sp,
                                 color = Color.Gray
                             )
@@ -1076,7 +1083,7 @@ fun AllocateFundsDialog(
                             )
                         }
                         Text(
-                            "Remaining: $${String.format("%.2f", remaining)}",
+                            "Remaining: ${formatCurrency(remaining, currencyCode)}",
                             fontSize = 13.sp,
                             color = Color(0xFFFF9800)
                         )
@@ -1086,7 +1093,7 @@ fun AllocateFundsDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Available Balance: $${String.format("%.2f", availableBalance)}",
+                    "Available Balance: ${formatCurrency(availableBalance, currencyCode)}",
                     fontSize = 13.sp,
                     color = Color.Gray
                 )

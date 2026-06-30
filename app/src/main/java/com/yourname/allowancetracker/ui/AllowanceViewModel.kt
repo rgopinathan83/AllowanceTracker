@@ -1,6 +1,7 @@
 package com.yourname.allowancetracker.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.yourname.allowancetracker.data.AllowanceRepository
@@ -12,11 +13,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+private const val PREFS_NAME = "allowance_prefs"
+private const val KEY_CURRENCY = "currency_code"
+private const val DEFAULT_CURRENCY = "USD"
+
 class AllowanceViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AllowanceRepository(application)
+    private val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     // UI State
-    private val _uiState = MutableStateFlow(AllowanceUiState())
+    private val _uiState = MutableStateFlow(
+        AllowanceUiState(currencyCode = prefs.getString(KEY_CURRENCY, DEFAULT_CURRENCY) ?: DEFAULT_CURRENCY)
+    )
     val uiState: StateFlow<AllowanceUiState> = _uiState.asStateFlow()
 
     // Selected child for detailed view
@@ -34,6 +42,11 @@ class AllowanceViewModel(application: Application) : AndroidViewModel(applicatio
                 _uiState.value = _uiState.value.copy(children = children)
             }
         }
+    }
+
+    fun setCurrency(code: String) {
+        prefs.edit().putString(KEY_CURRENCY, code).apply()
+        _uiState.value = _uiState.value.copy(currencyCode = code)
     }
 
     // ============================================
@@ -191,5 +204,6 @@ data class AllowanceUiState(
     val children: List<com.yourname.allowancetracker.data.Child> = emptyList(),
     val selectedChild: com.yourname.allowancetracker.data.Child? = null,
     val transactions: List<com.yourname.allowancetracker.data.Transaction> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val currencyCode: String = "USD"
 )

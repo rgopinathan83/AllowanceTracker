@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.yourname.allowancetracker.data.RecurringAllowance
 import com.yourname.allowancetracker.ui.AllowanceViewModel
+import com.yourname.allowancetracker.utils.formatCurrency
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,6 +29,8 @@ fun RecurringAllowanceManagementScreen(
     childName: String,
     onBack: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val currencyCode = uiState.currencyCode
     var allowances by remember { mutableStateOf<List<RecurringAllowance>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedAllowance by remember { mutableStateOf<RecurringAllowance?>(null) }
@@ -125,6 +128,7 @@ fun RecurringAllowanceManagementScreen(
                     items(allowances) { allowance ->
                         RecurringAllowanceCard(
                             allowance = allowance,
+                            currencyCode = currencyCode,
                             onEdit = {
                                 selectedAllowance = allowance
                                 showEditDialog = true
@@ -150,6 +154,7 @@ fun RecurringAllowanceManagementScreen(
     // Add Dialog
     if (showAddDialog) {
         AddRecurringAllowanceDialog(
+            currencyCode = currencyCode,
             onDismiss = { showAddDialog = false },
             onSave = { amount, frequency, day ->
                 scope.launch {
@@ -191,7 +196,7 @@ fun RecurringAllowanceManagementScreen(
             title = { Text("Delete Recurring Allowance?") },
             text = {
                 Text(
-                    "This will permanently remove the recurring allowance of $${String.format("%.2f", showDeleteDialog!!.amount)}."
+                    "This will permanently remove the recurring allowance of ${formatCurrency(showDeleteDialog!!.amount, currencyCode)}."
                 )
             },
             confirmButton = {
@@ -221,6 +226,7 @@ fun RecurringAllowanceManagementScreen(
 @Composable
 fun RecurringAllowanceCard(
     allowance: RecurringAllowance,
+    currencyCode: String,
     onEdit: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit
@@ -246,7 +252,7 @@ fun RecurringAllowanceCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "$${String.format("%.2f", allowance.amount)}",
+                        formatCurrency(allowance.amount, currencyCode),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (allowance.isActive) Color(0xFF333333) else Color.Gray
@@ -323,6 +329,7 @@ fun RecurringAllowanceCard(
 // ============================================
 @Composable
 fun AddRecurringAllowanceDialog(
+    currencyCode: String,
     onDismiss: () -> Unit,
     onSave: (Double, String, Int) -> Unit
 ) {
@@ -542,7 +549,7 @@ fun AddRecurringAllowanceDialog(
                                     color = Color(0xFF6C63FF)
                                 )
                                 Text(
-                                    "$${String.format("%.2f", amount.toDoubleOrNull()!!)} every ${
+                                    "${formatCurrency(amount.toDoubleOrNull()!!, currencyCode)} every ${
                                         if (frequency == "Weekly") {
                                             weekDays[selectedDay - 1]
                                         } else {

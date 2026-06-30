@@ -20,6 +20,8 @@ import androidx.compose.ui.window.Dialog
 import com.yourname.allowancetracker.data.Transaction
 import com.yourname.allowancetracker.data.getFormattedDate
 import com.yourname.allowancetracker.ui.AllowanceViewModel
+import com.yourname.allowancetracker.utils.formatCurrency
+import com.yourname.allowancetracker.utils.formatCurrencyWithSign
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +35,7 @@ fun ChildDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val child = uiState.selectedChild
     val transactions = uiState.transactions
+    val currencyCode = uiState.currencyCode
     val scope = rememberCoroutineScope()
 
     // Dialog states
@@ -224,7 +227,7 @@ fun ChildDetailScreen(
                         color = Color.Gray
                     )
                     Text(
-                        text = "$${String.format("%.2f", child.balance)}",
+                        text = formatCurrency(child.balance, currencyCode),
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (child.balance >= 0)
@@ -315,6 +318,7 @@ fun ChildDetailScreen(
                     items(filteredTransactions) { transaction ->
                         TransactionItem(
                             transaction = transaction,
+                            currencyCode = currencyCode,
                             onEditClick = {
                                 selectedTransaction = transaction
                                 showEditDialog = true
@@ -403,6 +407,7 @@ fun ChildDetailScreen(
 @Composable
 fun TransactionItem(
     transaction: Transaction,
+    currencyCode: String,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -445,8 +450,7 @@ fun TransactionItem(
             ) {
                 // Amount
                 Text(
-                    text = if (transaction.amount >= 0) "+$${String.format("%.2f", transaction.amount)}"
-                    else "-$${String.format("%.2f", Math.abs(transaction.amount))}",
+                    text = formatCurrencyWithSign(transaction.amount, currencyCode),
                     color = if (transaction.amount >= 0)
                         Color(0xFF4CAF50)
                     else
